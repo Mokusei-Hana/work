@@ -1,5 +1,7 @@
 from PIL import Image
+
 from drmstego.steg.lsb import LSBStego
+
 
 def test_lsb_roundtrip():
     img = Image.new("RGB", (64, 64), color=(123, 222, 111))

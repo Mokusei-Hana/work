@@ -1,9 +1,10 @@
+import json
+
 import typer
-from pathlib import Path
-from PIL import Image
-from .steg.lsb import LSBStego
+
+from .drm.watermark import WatermarkPayload, make_simple_watermark
 from .io_utils import read_image, save_image
-from .drm.watermark import make_simple_watermark
+from .steg.lsb import LSBStego
 
 app = typer.Typer(help="隐写-版权 研究用 CLI")
 
@@ -21,7 +22,11 @@ def extract(stego: str, length: int):
     """从图像中提取固定长度字节"""
     img = read_image(stego)
     data = LSBStego().extract(img, length_bytes=length)
-    typer.echo(data.decode("utf-8", errors="ignore"))
+    try:
+        wm = WatermarkPayload.from_bytes(data)
+        typer.echo(json.dumps(wm.__dict__, ensure_ascii=False))
+    except ValueError:
+        typer.echo(data.decode("utf-8", errors="ignore"))
 
 @app.command()
 def embed_license(cover: str, out: str, author: str, license_id: str):
