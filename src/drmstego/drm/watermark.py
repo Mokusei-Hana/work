@@ -1,6 +1,7 @@
+import json
 from dataclasses import dataclass
 from datetime import datetime
-import json
+
 
 @dataclass
 class WatermarkPayload:
@@ -17,8 +18,30 @@ class WatermarkPayload:
             "extra": self.extra,
         }, ensure_ascii=False).encode("utf-8")
 
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "WatermarkPayload":
+        try:
+            obj = json.loads(data.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            raise ValueError("Invalid watermark payload") from e
+        if not isinstance(obj, dict):
+            raise ValueError("Invalid watermark payload")
+        try:
+            author = obj["author"]
+            license_id = obj["license_id"]
+            issued_at = obj["issued_at"]
+            extra = obj.get("extra", {})
+        except KeyError as e:
+            raise ValueError("Missing field in watermark payload") from e
+        if not isinstance(extra, dict):
+            raise ValueError("Invalid watermark payload")
+        return cls(author=author, license_id=license_id, issued_at=issued_at, extra=extra)
+
 def make_simple_watermark(author: str, license_id: str, **extra) -> bytes:
-    wm = WatermarkPayload(author=author, license_id=license_id,
-                          issued_at=datetime.utcnow().isoformat()+"Z",
-                          extra=extra)
+    wm = WatermarkPayload(
+        author=author,
+        license_id=license_id,
+        issued_at=datetime.utcnow().isoformat() + "Z",
+        extra=extra,
+    )
     return wm.to_bytes()
