@@ -14,7 +14,7 @@ class LSBStego(StegoAlgorithm):
         if bits.size > capacity:
             raise ValueError(f"载荷过大：{bits.size}bits > 容量{capacity}bits")
         flat = arr[:, :, channel].flatten()
-        flat[: bits.size] = (flat[: bits.size] & ~1) | bits
+        flat[: bits.size] = (flat[: bits.size] & np.uint8(0xFE)) | bits
         arr[:, :, channel] = flat.reshape(h, w)
         return Image.fromarray(arr)
 
