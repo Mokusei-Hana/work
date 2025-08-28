@@ -6,3 +6,6 @@ scipy
 scikit-image
 pydantic>=2
 typer
+PyWavelets
+httpx
+python-multipart
