@@ -1,4 +1,19 @@
-# 1) 基本文件
+#!/usr/bin/env bash
+set -euo pipefail
+
+REMOTE_URL="${1:-}"   # 可选：传入远程仓库地址
+BRANCH="main"
+
+echo "==> 确保在仓库根目录执行（当前：$(pwd)）"
+
+# 先建所有目录（很重要！）
+mkdir -p .github/workflows
+mkdir -p docs data/samples
+mkdir -p src/drmstego/steg src/drmstego/detect src/drmstego/drm
+mkdir -p src/server
+mkdir -p tests
+
+# 基本文件
 echo "# 基于隐写技术的数字版权保护与检测系统" > README.md
 echo "MIT License" > LICENSE
 
@@ -22,7 +37,6 @@ data/samples/*
 .DS_Store
 EOF
 
-# 2) Python项目 & 工具
 cat > pyproject.toml << 'EOF'
 [project]
 name = "drmstego"
@@ -78,8 +92,6 @@ repos:
     hooks: [{id: ruff}]
 EOF
 
-# 3) CI
-mkdir -p .github/workflows
 cat > .github/workflows/ci.yml << 'EOF'
 name: CI
 on: [push, pull_request]
@@ -95,8 +107,6 @@ jobs:
       - run: pytest
 EOF
 
-# 4) 目录
-mkdir -p docs data/samples src/drmstego/{steg,detect,drm} src/server tests
 echo "示例数据说明；大文件请勿入库。" > data/README.md
 echo "待写：项目总览与术语。" > docs/00_overview.md
 echo "待写：系统设计图与模块说明。" > docs/01_design.md
@@ -104,7 +114,6 @@ echo "待写：算法实现细节与对比实验。" > docs/02_algorithms.md
 echo "待写：API说明与示例。" > docs/03_api.md
 echo "随手记录实验与想法。" > docs/99_notes.md
 
-# 5) Python包骨架
 cat > src/drmstego/__init__.py << 'EOF'
 __all__ = ["steg", "detect", "metrics", "drm"]
 EOF
@@ -303,7 +312,6 @@ if __name__ == "__main__":
     app()
 EOF
 
-# 6) API服务
 cat > src/server/schemas.py << 'EOF'
 from pydantic import BaseModel
 
@@ -344,7 +352,6 @@ async def extract(img: UploadFile, req: ExtractRequest):
     return {"text": data.decode("utf-8", errors="ignore")}
 EOF
 
-# 7) 测试
 cat > tests/test_lsb.py << 'EOF'
 from PIL import Image
 from drmstego.steg.lsb import LSBStego
@@ -386,12 +393,37 @@ def test_embed_extract():
     assert r.status_code == 200
 EOF
 
-# 8) 安全说明
 cat > SECURITY.md << 'EOF'
 - 不要将含个人信息或受版权保护的大文件直接入库。
 - 对第三方数据集标注来源与许可证。
 - 研究代码默认仅用于学术与教学，生产前需进行安全评估与审计。
 EOF
 
+# 初始化/提交
+if [ ! -d .git ]; then
+  git init
+fi
+
+# 处理可能存在的无效上游
+git branch --unset-upstream 2>/dev/null || true
+
 git add .
-git commit -m "chore: 初始化项目框架"
+git commit -m "chore: 初始化项目框架" || true
+
+# 分支与远程
+git branch -M "${BRANCH}"
+
+if [ -n "${REMOTE_URL}" ]; then
+  if git remote | grep -q '^origin$'; then
+    git remote set-url origin "${REMOTE_URL}"
+  else
+    git remote add origin "${REMOTE_URL}"
+  fi
+  echo "==> 推送到远程：${REMOTE_URL}"
+  git push -u origin "${BRANCH}"
+else
+  echo "==> 未提供远程URL，已本地初始化完成。"
+  echo "   如需推送：git remote add origin <REMOTE_URL> && git push -u origin ${BRANCH}"
+fi
+
+echo "✅ 完成。"
