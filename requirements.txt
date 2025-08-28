@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pillow
+numpy
+scipy
+scikit-image
+pydantic>=2
+typer
